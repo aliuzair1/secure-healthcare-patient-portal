@@ -74,7 +74,12 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // SIGNED_IN is intentionally not handled here.
+        // loginStep1 / loginStep2 own the login flow and set state + trigger
+        // navigation directly. Handling SIGNED_IN here would race with those
+        // functions: it can fire before loginStep1 sets MFA_REQUIRED (bypassing
+        // 2FA), and it can navigate via PublicRoute using a stale user.role.
+        if (event === 'TOKEN_REFRESHED') {
           const profile = await authService.getSessionUser();
           if (profile) {
             setUser(profile);
@@ -112,13 +117,13 @@ export function AuthProvider({ children }) {
         });
         setAuthState(AUTH_STATES.MFA_REQUIRED);
       } else {
-        // No MFA enrolled — fetch profile and complete login
+        // No MFA enrolled — fetch profile and complete login.
+        // Navigation is handled by PublicRoute reacting to isAuthenticated + user,
+        // so it always uses the committed user.role from React state.
         const profile = await authService.getSessionUser();
         setUser(profile);
         setAuthState(AUTH_STATES.AUTHENTICATED);
         showToast('Login successful. Welcome back!', 'success');
-        const roleRoutes = { patient: '/patient', doctor: '/doctor', admin: '/admin' };
-        navigate(roleRoutes[profile?.role] || '/');
       }
 
       return result;
@@ -141,8 +146,7 @@ export function AuthProvider({ children }) {
       setMfaChallenge(null);
       setAuthState(AUTH_STATES.AUTHENTICATED);
       showToast('Login successful. Welcome back!', 'success');
-      const roleRoutes = { patient: '/patient', doctor: '/doctor', admin: '/admin' };
-      navigate(roleRoutes[profile?.role] || '/');
+      // Navigation handled by PublicRoute — see loginStep1 comment.
     } catch (err) {
       setAuthState(AUTH_STATES.MFA_REQUIRED);
       throw err;
