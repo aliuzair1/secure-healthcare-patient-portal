@@ -54,10 +54,10 @@ def create_app():
     )
 
     # ---- WAF ----------------------------------------------------- #
-    WAF(app)
+#WAF(app)
 
     # ---- Rate limiter -------------------------------------------- #
-    limiter.init_app(app)
+    #limiter.init_app(app)
 
     # ---- Blueprints ---------------------------------------------- #
     from routes.auth import bp as auth_bp
@@ -75,7 +75,7 @@ def create_app():
     app.register_blueprint(slots_bp)
 
     # ---- Tighter rate limits on auth endpoints ------------------- #
-    limiter.limit("10 per minute")(auth_bp)
+    #limiter.limit("10 per minute")(auth_bp)
 
     # ---- Health probe -------------------------------------------- #
     @app.get("/api/health")
