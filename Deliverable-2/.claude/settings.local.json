@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"C:\\\\Users\\\\aliuz\\\\Desktop\\\\VSCodes\\\\SSD Project\\\\secure-healthcare-patient-portal\\\\Deliverable-2\\\\backend\\\\middleware\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\aliuz\\\\Desktop\\\\VSCodes\\\\SSD Project\\\\secure-healthcare-patient-portal\\\\Deliverable-2\\\\backend\\\\routes\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\aliuz\\\\Desktop\\\\VSCodes\\\\SSD Project\\\\secure-healthcare-patient-portal\\\\Deliverable-2\\\\backend\\\\services\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\aliuz\\\\Desktop\\\\VSCodes\\\\SSD Project\\\\secure-healthcare-patient-portal\\\\Deliverable-2\\\\backend\\\\utils\")"
+    ]
+  }
+}

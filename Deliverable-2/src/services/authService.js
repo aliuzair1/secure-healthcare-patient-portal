@@ -101,39 +101,17 @@ export async function verifyMFA(userId, code, { factorId, challengeId } = {}) {
 }
 
 export async function getSessionUser() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return null;
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', session.user.id)
-    .single();
-
-  if (!profile) return null;
-
-  return {
-    id: profile.id,
-    email: session.user.email,
-    role: profile.role,
-    firstName: profile.first_name,
-    lastName: profile.last_name,
-    phone: profile.phone,
-    dob: profile.dob,
-    gender: profile.gender,
-    address: profile.address,
-    emergencyContact: profile.emergency_contact,
-    allergies: profile.allergies,
-    bloodType: profile.blood_type,
-    assignedDoctorId: profile.assigned_doctor_id,
-    specialty: profile.specialty,
-    licenseNumber: profile.license_number,
-    department: profile.department,
-    isApproved: profile.is_approved,
-    isActive: profile.is_active,
-    mfaEnabled: profile.mfa_enabled,
-    createdAt: profile.created_at,
-  };
+  // Fetch the user profile through the Flask backend (/api/auth/me).
+  // The Axios interceptor in api.js attaches the current Supabase JWT
+  // automatically so the backend can validate it and apply business rules
+  // (is_active, doctor approval check, etc.) before returning the profile.
+  try {
+    const { default: api } = await import('../config/api');
+    const { data: profile } = await api.get('/auth/me');
+    return profile ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function requestPasswordReset(email) {
