@@ -19,10 +19,9 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 from config import get_config
-from middleware.waf import WAF
 
 load_dotenv()
-
+"""
 # ------------------------------------------------------------------ #
 #  Rate-limiter (shared across the app)                                #
 # ------------------------------------------------------------------ #
@@ -31,7 +30,7 @@ limiter = Limiter(
     default_limits=["200 per minute", "20 per second"],
     storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "memory://"),
 )
-
+"""
 
 def create_app():
     app = Flask(__name__)
