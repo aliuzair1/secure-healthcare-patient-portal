@@ -29,26 +29,17 @@ VALID_ROLES = {"patient", "doctor", "admin"}
 # ------------------------------------------------------------------ #
 
 def _decode_jwt(token: str) -> dict | None:
-    """Validate and decode a Supabase JWT. Returns payload or None."""
-    secret = current_app.config.get("SUPABASE_JWT_SECRET", "")
-    if not secret:
-        logger.error("SUPABASE_JWT_SECRET is not configured.")
-        return None
+    # Use the token to fetch the user securely from Supabase
+    auth_client = get_supabase().auth
     try:
-        payload = jwt.decode(
-            token,
-            secret,
-            algorithms=["HS256"],
-            audience="authenticated",
-            options={"verify_exp": True},
-        )
-        return payload
-    except jwt.ExpiredSignatureError:
+        user_resp = auth_client.get_user(token)
+        if user_resp and user_resp.user:
+            return {"sub": user_resp.user.id}
         return None
-    except jwt.InvalidAudienceError:
+    except Exception as exc:
+        logger.error("Token validation failed: %s", exc)
         return None
-    except jwt.InvalidTokenError:
-        return None
+
 
 
 def _fetch_profile(user_id: str) -> dict | None:
