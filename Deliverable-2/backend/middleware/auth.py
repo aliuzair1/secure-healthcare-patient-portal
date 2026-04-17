@@ -18,6 +18,13 @@ import jwt
 from flask import current_app, g, request
 from services.supabase_client import get_supabase
 from utils.responses import forbidden, unauthorized
+from functools import lru_cache
+
+@lru_cache(maxsize=1)
+def get_jwks_client():
+    url = current_app.config.get("SUPABASE_URL", "").rstrip("/")
+    jwks_url = f"{url}/auth/v1/jwks"
+    return jwt.PyJWKClient(jwks_url)
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +36,26 @@ VALID_ROLES = {"patient", "doctor", "admin"}
 # ------------------------------------------------------------------ #
 
 def _decode_jwt(token: str) -> dict | None:
-    # Use the token to fetch the user securely from Supabase
-    auth_client = get_supabase().auth
     try:
-        user_resp = auth_client.get_user(token)
-        if user_resp and user_resp.user:
-            return {"sub": user_resp.user.id}
-        return None
+        # First attempt: Decode via symmetric secret (HS256)
+        secret = current_app.config.get("SUPABASE_JWT_SECRET", "")
+        return jwt.decode(
+            token, secret, algorithms=["HS256"], audience="authenticated", options={"verify_exp": True}
+        )
+    except jwt.InvalidTokenError:
+        pass
+
+    try:
+        # Second attempt: Decode via Asymmetric Public Key (RS256, ES256) fetched from JWKS
+        jwks_client = get_jwks_client()
+        signing_key = jwks_client.get_signing_key_from_jwt(token)
+        return jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["RS256", "ES256"],
+            audience="authenticated",
+            options={"verify_exp": True}
+        )
     except Exception as exc:
         logger.error("Token validation failed: %s", exc)
         return None
