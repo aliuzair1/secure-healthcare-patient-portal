@@ -181,6 +181,9 @@ RULES: List[WAFRule] = [
         rule_id="XSS-008", score=0.70,
         description="Framework template injection  ({{…}} / [[…]])",
         category=ThreatCategory.A03_XSS,
+        # Restrict to body/query — JWT Bearer tokens in Authorization headers
+        # contain base64 characters that can accidentally match this pattern.
+        apply_to=["body", "query", "cookies"],
         pattern=r"\{\{.*?\}\}|\[\[.*?\]\]",
     ),
 
@@ -346,7 +349,10 @@ RULES: List[WAFRule] = [
         rule_id="CRLF-001", score=0.85,
         description="CRLF injection / HTTP response splitting",
         category=ThreatCategory.HTTP_SMUGGLING,
-        pattern=r"%0[dD]%0[aA]|%0[aA]%0[dD]|\r\n|\r|\n",
+        # Restrict to body/query only — headers are naturally newline-separated when
+        # concatenated, which causes false positives on every legitimate request.
+        apply_to=["body", "query"],
+        pattern=r"%0[dD]%0[aA]|%0[aA]%0[dD]",
     ),
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -364,10 +370,12 @@ RULES: List[WAFRule] = [
     # ═══════════════════════════════════════════════════════════════════════
     WAFRule(
         rule_id="BAC-001", score=0.70,
-        description="Forced browsing: admin / config endpoint",
+        description="Forced browsing: suspicious admin / config endpoint",
         category=ThreatCategory.A01_BROKEN_ACCESS_CONTROL,
         apply_to=["path"],
-        pattern=r"/(admin|administrator|phpmyadmin|wp-admin|config|setup|install|backup|\.env|\.htaccess|web\.config)",
+        # /api/admin is a legitimate route in this application; only flag external
+        # admin panel probing tools (phpmyadmin, wp-admin) and sensitive files.
+        pattern=r"/(administrator|phpmyadmin|wp-admin|setup|install|backup|\.env|\.htaccess|web\.config)",
     ),
     WAFRule(
         rule_id="BAC-002", score=0.90,

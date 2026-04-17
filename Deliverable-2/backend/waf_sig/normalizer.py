@@ -245,12 +245,23 @@ def normalise(ingress: IngressRequest) -> NormalisedRequest:
             decoded_vals.append(dv)
         params[dk] = decoded_vals
 
-    # Headers
+    # Headers — skip Authorization to prevent JWT Bearer tokens from being
+    # decoded (base64 heuristic) and injected into all_inputs, which causes
+    # false-positive SQL injection / XSS rule matches on every auth'd request.
+    _SKIP_HEADERS = {"authorization", "cookie"}
     decoded_headers: Dict[str, str] = {}
+    headers_for_scan: Dict[str, str] = {}
     for k, v in ingress.headers.items():
+        lk = k.lower().strip()
+        if lk in _SKIP_HEADERS:
+            # Store as-is without normalising — we still want to access value
+            # (e.g. for logging) but NOT decode JWT as base64 or scan it.
+            decoded_headers[lk] = v
+            continue
         dv, hs = _normalise_value(v)
         sig = _merge(sig, hs)
-        decoded_headers[k.lower().strip()] = dv
+        decoded_headers[lk] = dv
+        headers_for_scan[lk] = dv
 
     # Cookies
     decoded_cookies: Dict[str, str] = {}
@@ -276,11 +287,12 @@ def normalise(ingress: IngressRequest) -> NormalisedRequest:
         params.setdefault(k, []).append(v)
 
     # Combined string for single-pass rule scanning
+    # Use headers_for_scan (excludes Authorization/Cookie) to avoid false positives
     all_inputs = " ".join([
         path,
         qs,
         body_raw_str[:4096],
-        " ".join(f"{k}={v}" for k, v in decoded_headers.items()),
+        " ".join(f"{k}={v}" for k, v in headers_for_scan.items()),
         " ".join(f"{k}={v}" for k, v in decoded_cookies.items()),
     ])
 
