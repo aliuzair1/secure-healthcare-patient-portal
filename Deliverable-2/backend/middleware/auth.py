@@ -20,11 +20,7 @@ from services.supabase_client import get_supabase
 from utils.responses import forbidden, unauthorized
 from functools import lru_cache
 
-@lru_cache(maxsize=1)
-def get_jwks_client():
-    url = current_app.config.get("SUPABASE_URL", "").rstrip("/")
-    jwks_url = f"{url}/auth/v1/jwks"
-    return jwt.PyJWKClient(jwks_url)
+
 
 logger = logging.getLogger(__name__)
 
@@ -37,39 +33,33 @@ VALID_ROLES = {"patient", "doctor", "admin"}
 
 def _decode_jwt(token: str) -> dict | None:
     try:
-        # First attempt: Decode via symmetric secret (HS256)
+        # First attempt: Fast path Decode via symmetric secret (HS256)
         secret = current_app.config.get("SUPABASE_JWT_SECRET", "")
-        return jwt.decode(
-            token, secret, algorithms=["HS256"], audience="authenticated", options={"verify_exp": True}
-        )
-    except jwt.InvalidTokenError:
+        if secret:
+            return jwt.decode(
+                token, secret, algorithms=["HS256"], audience="authenticated", options={"verify_exp": True}
+            )
+    except Exception:
         pass
 
-    try:
-        # Second attempt: Decode via Asymmetric Public Key (RS256, ES256) fetched from JWKS
-        import time
-        jwks_client = get_jwks_client()
-        signing_key = None
-        for attempt in range(2):
-            try:
-                signing_key = jwks_client.get_signing_key_from_jwt(token)
-                break
-            except Exception:
-                if attempt == 0:
-                    time.sleep(0.5)
-                    continue
-                raise
-        
-        return jwt.decode(
-            token,
-            signing_key.key,
-            algorithms=["RS256", "ES256"],
-            audience="authenticated",
-            options={"verify_exp": True}
-        )
-    except Exception as exc:
-        logger.error("Token validation failed: %s", exc)
-        return None
+    # Second attempt: For asymmetric keys (ES256/RS256) missing JWKS endpoints
+    import time
+    auth_client = get_supabase().auth
+    for attempt in range(2):
+        try:
+            # Validate token authenticity via Supabase server. 
+            # If this succeeds, the token is 100% securely valid and not forged.
+            user_resp = auth_client.get_user(token)
+            if user_resp and getattr(user_resp, "user", None):
+                # Safely parse claims locally now that authenticity is proven
+                return jwt.decode(token, options={"verify_signature": False})
+            return None
+        except Exception as exc:
+            if attempt == 0:
+                time.sleep(0.5)
+                continue
+            logger.error("Token API validation failed: %s", exc)
+            return None
 
 
 
