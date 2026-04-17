@@ -15,7 +15,7 @@ class Config:
     # CORS — restrict to known frontend origins
     CORS_ORIGINS = [
         o.strip()
-        for o in os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",")
+        for o in os.environ.get("CORS_ORIGINS", "https://secure-healthcare-patient-portal.vercel.app").split(",")
         if o.strip()
     ]
 
@@ -26,7 +26,7 @@ class Config:
     # Max upload / request body: 10 MB
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024
 
-    APP_URL = os.environ.get("APP_URL", "http://localhost:5173")
+    APP_URL = os.environ.get("APP_URL", "https://secure-healthcare-patient-portal.vercel.app")
 
 
 class DevelopmentConfig(Config):
