@@ -47,8 +47,19 @@ def _decode_jwt(token: str) -> dict | None:
 
     try:
         # Second attempt: Decode via Asymmetric Public Key (RS256, ES256) fetched from JWKS
+        import time
         jwks_client = get_jwks_client()
-        signing_key = jwks_client.get_signing_key_from_jwt(token)
+        signing_key = None
+        for attempt in range(2):
+            try:
+                signing_key = jwks_client.get_signing_key_from_jwt(token)
+                break
+            except Exception:
+                if attempt == 0:
+                    time.sleep(0.5)
+                    continue
+                raise
+        
         return jwt.decode(
             token,
             signing_key.key,
@@ -63,24 +74,29 @@ def _decode_jwt(token: str) -> dict | None:
 
 
 def _fetch_profile(user_id: str) -> dict | None:
-    """Fetch the user profile from Supabase. Returns dict or None."""
-    try:
-        result = (
-            get_supabase()
-            .table("profiles")
-            .select(
-                "id, role, first_name, last_name, is_active, is_approved, "
-                "mfa_enabled, specialty, license_number, department, "
-                "assigned_doctor_id"
+    """Fetch the user profile from Supabase with a retry for stale connections."""
+    import time
+    for attempt in range(2):
+        try:
+            result = (
+                get_supabase()
+                .table("profiles")
+                .select(
+                    "id, role, first_name, last_name, is_active, is_approved, "
+                    "mfa_enabled, specialty, license_number, department, "
+                    "assigned_doctor_id"
+                )
+                .eq("id", user_id)
+                .single()
+                .execute()
             )
-            .eq("id", user_id)
-            .single()
-            .execute()
-        )
-        return result.data
-    except Exception as exc:
-        logger.warning("Profile lookup failed for %s: %s", user_id, exc)
-        return None
+            return result.data
+        except Exception as exc:
+            if attempt == 0:
+                time.sleep(0.5)
+                continue
+            logger.warning("Profile lookup failed for %s: %s", user_id, exc)
+            return None
 
 
 # ------------------------------------------------------------------ #
