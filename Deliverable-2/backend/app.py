@@ -21,7 +21,7 @@ from flask_limiter.util import get_remote_address
 from config import get_config
 
 load_dotenv()
-"""
+
 # ------------------------------------------------------------------ #
 #  Rate-limiter (shared across the app)                                #
 # ------------------------------------------------------------------ #
@@ -30,7 +30,7 @@ limiter = Limiter(
     default_limits=["200 per minute", "20 per second"],
     storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "memory://"),
 )
-"""
+
 
 def create_app():
     app = Flask(__name__)
@@ -54,10 +54,12 @@ def create_app():
     )
 
     # ---- WAF ----------------------------------------------------- #
-#WAF(app)
+    from middleware.waf import WAF, create_waf_blueprint
+    WAF(app)
+    app.register_blueprint(create_waf_blueprint())
 
     # ---- Rate limiter -------------------------------------------- #
-    #limiter.init_app(app)
+    limiter.init_app(app)
 
     # ---- Blueprints ---------------------------------------------- #
     from routes.auth import bp as auth_bp
@@ -75,7 +77,7 @@ def create_app():
     app.register_blueprint(slots_bp)
 
     # ---- Tighter rate limits on auth endpoints ------------------- #
-    #limiter.limit("10 per minute")(auth_bp)
+    limiter.limit("10 per minute")(auth_bp)
 
     # ---- Health probe -------------------------------------------- #
     @app.get("/api/health")
