@@ -18,7 +18,6 @@ import jwt
 from flask import current_app, g, request
 from services.supabase_client import get_supabase
 from utils.responses import forbidden, unauthorized
-from functools import lru_cache
 
 
 
