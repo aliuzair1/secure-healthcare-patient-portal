@@ -1,30 +1,29 @@
 #!/bin/bash
-# start.sh — Render startup script
-# Installs Wazuh agent, configures log monitoring, starts Flask
-
 set -e
 
-echo "[start.sh] Installing Wazuh agent..."
+echo "[start.sh] Adding Wazuh apt repository..."
 
-# Download the Wazuh agent deb package
-curl -sO https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.14.5-1_amd64.deb
+# Add Wazuh GPG key
+curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | \
+  gpg --no-default-keyring \
+      --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg \
+      --import
+chmod 644 /usr/share/keyrings/wazuh.gpg
 
-# Install silently
-WAZUH_MANAGER="${WAZUH_MANAGER_HOST}" \
-WAZUH_AGENT_NAME="healthcare-render" \
-dpkg -i ./wazuh-agent_4.14.5-1_amd64.deb 2>/dev/null || true
+# Add apt source list
+echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" \
+  > /etc/apt/sources.list.d/wazuh.list
 
-# ---------------------------------------------------------------
-# Write the pre-generated agent key directly (bypasses port 1515)
-# Format: <id> <name> <ip> <key>
-# ---------------------------------------------------------------
+echo "[start.sh] Installing Wazuh agent 4.14.5..."
+apt-get update -qq
+DEBIAN_FRONTEND=noninteractive apt-get install -y wazuh-agent=4.14.5-1
+
+echo "[start.sh] Configuring agent key..."
+mkdir -p /var/ossec/etc
 echo "${WAZUH_AGENT_ID} healthcare-render any ${WAZUH_AGENT_KEY}" > /var/ossec/etc/client.keys
 chmod 640 /var/ossec/etc/client.keys
 
-# ---------------------------------------------------------------
-# Write ossec.conf — points to Wazuh manager via ngrok tunnel
-# and monitors the Flask + WAF log files
-# ---------------------------------------------------------------
+echo "[start.sh] Writing ossec.conf..."
 cat > /var/ossec/etc/ossec.conf << EOF
 <ossec_config>
 
@@ -50,7 +49,6 @@ cat > /var/ossec/etc/ossec.conf << EOF
     <log_format>plain</log_format>
   </logging>
 
-  <!-- WAF attack log — blocked/challenged requests -->
   <localfile>
     <log_format>json</log_format>
     <location>/opt/render/project/src/Deliverable-2/backend/waf_sig/logs/attack.log</location>
@@ -58,7 +56,6 @@ cat > /var/ossec/etc/ossec.conf << EOF
     <label key="log.environment">production</label>
   </localfile>
 
-  <!-- WAF access log — all allowed requests -->
   <localfile>
     <log_format>json</log_format>
     <location>/opt/render/project/src/Deliverable-2/backend/waf_sig/logs/access.log</location>
@@ -66,7 +63,6 @@ cat > /var/ossec/etc/ossec.conf << EOF
     <label key="log.environment">production</label>
   </localfile>
 
-  <!-- WAF error log -->
   <localfile>
     <log_format>json</log_format>
     <location>/opt/render/project/src/Deliverable-2/backend/waf_sig/logs/error.log</location>
@@ -74,7 +70,6 @@ cat > /var/ossec/etc/ossec.conf << EOF
     <label key="log.environment">production</label>
   </localfile>
 
-  <!-- Flask application log — auth events, 500 errors -->
   <localfile>
     <log_format>json</log_format>
     <location>/opt/render/project/src/Deliverable-2/backend/logs/app.log</location>
@@ -90,7 +85,6 @@ echo "[start.sh] Starting Wazuh agent..."
 
 echo "[start.sh] Wazuh agent started. Starting Flask..."
 
-# Start Flask via Gunicorn
 exec gunicorn wsgi:application \
   --bind "0.0.0.0:${PORT:-10000}" \
   --workers 2 \
