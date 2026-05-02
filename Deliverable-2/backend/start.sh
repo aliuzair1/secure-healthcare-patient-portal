@@ -3,8 +3,6 @@ set -e
 
 echo "[start.sh] Configuring Wazuh agent..."
 
-mkdir -p /var/ossec/etc
-
 # Write pre-generated agent key (bypasses port 1515 registration)
 echo "${WAZUH_AGENT_ID} healthcare-render any ${WAZUH_AGENT_KEY}" \
   > /var/ossec/etc/client.keys

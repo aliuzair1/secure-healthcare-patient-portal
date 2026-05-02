@@ -15,7 +15,8 @@ RUN apt-get update -qq && \
     apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y wazuh-agent=4.14.5-1 && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    chmod -R a+rwX /var/ossec
 
 # Install Python dependencies
 COPY requirements.txt .
