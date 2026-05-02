@@ -1,30 +1,16 @@
 #!/bin/bash
 set -e
 
-echo "[start.sh] Adding Wazuh apt repository..."
+echo "[start.sh] Configuring Wazuh agent..."
 
-# Import GPG key (container runs as root, /tmp is writable)
-curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | \
-  gpg --no-default-keyring \
-      --keyring gnupg-ring:/tmp/wazuh.gpg \
-      --import
-chmod 644 /tmp/wazuh.gpg
-
-# Add apt source
-echo "deb [signed-by=/tmp/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" \
-  > /etc/apt/sources.list.d/wazuh.list
-
-echo "[start.sh] Installing Wazuh agent 4.14.5..."
-apt-get update -qq
-DEBIAN_FRONTEND=noninteractive apt-get install -y wazuh-agent=4.14.5-1
-
-echo "[start.sh] Configuring agent key..."
 mkdir -p /var/ossec/etc
+
+# Write pre-generated agent key (bypasses port 1515 registration)
 echo "${WAZUH_AGENT_ID} healthcare-render any ${WAZUH_AGENT_KEY}" \
   > /var/ossec/etc/client.keys
 chmod 640 /var/ossec/etc/client.keys
 
-echo "[start.sh] Writing ossec.conf..."
+# Write ossec.conf — log paths use /app since WORKDIR is /app in Dockerfile
 cat > /var/ossec/etc/ossec.conf << EOF
 <ossec_config>
 
@@ -52,28 +38,28 @@ cat > /var/ossec/etc/ossec.conf << EOF
 
   <localfile>
     <log_format>json</log_format>
-    <location>/opt/render/project/src/Deliverable-2/backend/waf_sig/logs/attack.log</location>
+    <location>/app/waf_sig/logs/attack.log</location>
     <label key="log.source">waf_attack</label>
     <label key="log.environment">production</label>
   </localfile>
 
   <localfile>
     <log_format>json</log_format>
-    <location>/opt/render/project/src/Deliverable-2/backend/waf_sig/logs/access.log</location>
+    <location>/app/waf_sig/logs/access.log</location>
     <label key="log.source">waf_access</label>
     <label key="log.environment">production</label>
   </localfile>
 
   <localfile>
     <log_format>json</log_format>
-    <location>/opt/render/project/src/Deliverable-2/backend/waf_sig/logs/error.log</location>
+    <location>/app/waf_sig/logs/error.log</location>
     <label key="log.source">waf_error</label>
     <label key="log.environment">production</label>
   </localfile>
 
   <localfile>
     <log_format>json</log_format>
-    <location>/opt/render/project/src/Deliverable-2/backend/logs/app.log</location>
+    <location>/app/logs/app.log</location>
     <label key="log.source">flask_app</label>
     <label key="log.environment">production</label>
   </localfile>
