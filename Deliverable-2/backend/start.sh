@@ -3,29 +3,29 @@ set -e
 
 echo "[start.sh] Adding Wazuh apt repository..."
 
-# Write GPG key to /tmp (user-writable, avoids permission denied on /usr/share/keyrings)
+# Import GPG key (container runs as root, /tmp is writable)
 curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | \
   gpg --no-default-keyring \
       --keyring gnupg-ring:/tmp/wazuh.gpg \
       --import
 chmod 644 /tmp/wazuh.gpg
 
-# Add apt source pointing to the /tmp keyring
+# Add apt source
 echo "deb [signed-by=/tmp/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" \
-  | sudo tee /etc/apt/sources.list.d/wazuh.list > /dev/null
+  > /etc/apt/sources.list.d/wazuh.list
 
 echo "[start.sh] Installing Wazuh agent 4.14.5..."
-sudo apt-get update -qq
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y wazuh-agent=4.14.5-1
+apt-get update -qq
+DEBIAN_FRONTEND=noninteractive apt-get install -y wazuh-agent=4.14.5-1
 
 echo "[start.sh] Configuring agent key..."
-sudo mkdir -p /var/ossec/etc
+mkdir -p /var/ossec/etc
 echo "${WAZUH_AGENT_ID} healthcare-render any ${WAZUH_AGENT_KEY}" \
-  | sudo tee /var/ossec/etc/client.keys > /dev/null
-sudo chmod 640 /var/ossec/etc/client.keys
+  > /var/ossec/etc/client.keys
+chmod 640 /var/ossec/etc/client.keys
 
 echo "[start.sh] Writing ossec.conf..."
-sudo tee /var/ossec/etc/ossec.conf > /dev/null << EOF
+cat > /var/ossec/etc/ossec.conf << EOF
 <ossec_config>
 
   <client>
@@ -82,7 +82,7 @@ sudo tee /var/ossec/etc/ossec.conf > /dev/null << EOF
 EOF
 
 echo "[start.sh] Starting Wazuh agent..."
-sudo /var/ossec/bin/wazuh-control start || true
+/var/ossec/bin/wazuh-control start || true
 
 echo "[start.sh] Wazuh agent started. Starting Flask..."
 
