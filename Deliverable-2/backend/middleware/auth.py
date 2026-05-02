@@ -112,26 +112,99 @@ def require_auth(f):
 
         payload = _decode_jwt(token)
         if not payload:
+            logger.warning(
+                "auth_failure",
+                extra={
+                    "event_type": "auth_failure",
+                    "reason": "invalid_or_expired_jwt",
+                    "client_ip": request.remote_addr,
+                    "path": request.path,
+                    "method": request.method,
+                },
+            )
             return unauthorized("Invalid or expired session.")
 
         user_id = payload.get("sub")
         if not user_id:
+            logger.warning(
+                "auth_failure",
+                extra={
+                    "event_type": "auth_failure",
+                    "reason": "missing_sub_claim",
+                    "client_ip": request.remote_addr,
+                    "path": request.path,
+                },
+            )
             return unauthorized("Invalid token.")
 
         profile = _fetch_profile(user_id)
         if not profile:
+            logger.warning(
+                "auth_failure",
+                extra={
+                    "event_type": "auth_failure",
+                    "reason": "account_not_found",
+                    "user_id": user_id,
+                    "client_ip": request.remote_addr,
+                    "path": request.path,
+                },
+            )
             return unauthorized("Account not found.")
 
         if not profile.get("is_active"):
+            logger.warning(
+                "auth_failure",
+                extra={
+                    "event_type": "auth_failure",
+                    "reason": "account_deactivated",
+                    "user_id": user_id,
+                    "client_ip": request.remote_addr,
+                    "path": request.path,
+                },
+            )
             return forbidden("Your account has been deactivated.")
 
         role = profile.get("role")
         if role not in VALID_ROLES:
+            logger.warning(
+                "auth_failure",
+                extra={
+                    "event_type": "auth_failure",
+                    "reason": "invalid_role",
+                    "user_id": user_id,
+                    "role": role,
+                    "client_ip": request.remote_addr,
+                    "path": request.path,
+                },
+            )
             return forbidden("Account role is not recognised.")
 
         # Doctors must be approved before accessing any data endpoint.
         if role == "doctor" and not profile.get("is_approved"):
+            logger.warning(
+                "auth_failure",
+                extra={
+                    "event_type": "auth_failure",
+                    "reason": "doctor_not_approved",
+                    "user_id": user_id,
+                    "client_ip": request.remote_addr,
+                    "path": request.path,
+                },
+            )
             return forbidden("Your account is pending approval.")
+
+        logger.info(
+            "auth_success",
+            extra={
+                "event_type": "auth_success",
+                "user_id": user_id,
+                "role": role,
+                "aal": payload.get("aal", "aal1"),
+                "client_ip": request.remote_addr,
+                "path": request.path,
+                "method": request.method,
+            },
+        )
 
         g.user_id = user_id
         g.user = profile

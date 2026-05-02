@@ -9,8 +9,11 @@ All requests flow through:
     → Route handler
     → Supabase (service-role client)
 """
+import json
 import logging
+import logging.handlers
 import os
+from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify
@@ -32,15 +35,66 @@ limiter = Limiter(
 )
 
 
+class _JSONFormatter(logging.Formatter):
+    """Emit each log record as a single JSON line for SIEM ingestion."""
+
+    _SKIP = frozenset([
+        "name", "msg", "args", "levelname", "levelno", "pathname",
+        "filename", "module", "exc_info", "exc_text", "stack_info",
+        "lineno", "funcName", "created", "msecs", "relativeCreated",
+        "thread", "threadName", "processName", "process", "message",
+        "taskName",
+    ])
+
+    def format(self, record: logging.LogRecord) -> str:
+        obj = {
+            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        for k, v in record.__dict__.items():
+            if k in self._SKIP:
+                continue
+            try:
+                json.dumps(v)
+                obj[k] = v
+            except (TypeError, ValueError):
+                obj[k] = str(v)
+        if record.exc_info:
+            obj["exception"] = self.formatException(record.exc_info)
+        return json.dumps(obj, default=str)
+
+
+def _setup_logging(debug: bool) -> None:
+    log_dir = os.path.join(os.path.dirname(__file__), "logs")
+    os.makedirs(log_dir, exist_ok=True)
+
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG if debug else logging.INFO)
+
+    # Plain-text console handler (developer convenience)
+    console = logging.StreamHandler()
+    console.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    root.addHandler(console)
+
+    # JSON rotating file handler — read by Wazuh agent
+    file_handler = logging.handlers.RotatingFileHandler(
+        os.path.join(log_dir, "app.log"),
+        maxBytes=10 * 1024 * 1024,
+        backupCount=5,
+        encoding="utf-8",
+    )
+    file_handler.setFormatter(_JSONFormatter())
+    root.addHandler(file_handler)
+
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(get_config())
 
     # ---- Logging ------------------------------------------------- #
-    logging.basicConfig(
-        level=logging.INFO if not app.debug else logging.DEBUG,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
+    _setup_logging(app.debug)
 
     # ---- CORS ---------------------------------------------------- #
     # Only the configured frontend origin(s) may make cross-origin requests.
