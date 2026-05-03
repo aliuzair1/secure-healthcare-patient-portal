@@ -20,7 +20,7 @@ cat > /var/ossec/etc/ossec.conf << EOF
       <port>${WAZUH_MANAGER_PORT}</port>
       <protocol>tcp</protocol>
     </server>
-    <notify_time>10</notify_time>
+    <notify_time>120</notify_time>
     <time-reconnect>60</time-reconnect>
     <auto_restart>yes</auto_restart>
     <crypto_method>aes</crypto_method>
