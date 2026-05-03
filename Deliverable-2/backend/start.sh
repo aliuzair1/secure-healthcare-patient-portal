@@ -70,10 +70,9 @@ cat > /var/ossec/etc/ossec.conf << EOF
 </ossec_config>
 EOF
 
-# Pre-create log files so Wazuh logcollector finds them at agent startup.
-# Also write a startup test event so we can verify the pipeline immediately.
+# Pre-create ALL log files so Wazuh logcollector finds them at agent startup.
 mkdir -p /app/logs /app/waf_sig/logs
-touch /app/waf_sig/logs/access.log /app/waf_sig/logs/error.log /app/logs/app.log
+touch /app/waf_sig/logs/access.log /app/waf_sig/logs/error.log /app/waf_sig/logs/attack.log /app/logs/app.log
 echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%S.000+0000)\",\"level\":\"WARNING\",\"logger\":\"waf.attack\",\"message\":\"startup-test\",\"event_type\":\"attack\",\"client_ip\":\"127.0.0.1\",\"method\":\"GET\",\"path\":\"/startup-test\",\"action\":\"BLOCK\",\"risk_score\":0.99,\"risk_label\":\"CRITICAL\"}" \
   >> /app/waf_sig/logs/attack.log
 echo "[start.sh] Wrote startup test event to attack.log"
@@ -92,13 +91,13 @@ else
 fi
 
 if ! pgrep -x wazuh-logcollector > /dev/null 2>&1; then
-  echo "[start.sh] Starting wazuh-logcollector manually..."
-  /var/ossec/bin/wazuh-logcollector || true
+  echo "[start.sh] Starting wazuh-logcollector in background..."
+  /var/ossec/bin/wazuh-logcollector &
 fi
 
 if ! pgrep -x wazuh-syscheckd > /dev/null 2>&1; then
-  echo "[start.sh] Starting wazuh-syscheckd manually..."
-  /var/ossec/bin/wazuh-syscheckd || true
+  echo "[start.sh] Starting wazuh-syscheckd in background..."
+  /var/ossec/bin/wazuh-syscheckd &
 fi
 
 echo "[start.sh] Wazuh agent started. Tailing ossec.log in background..."
