@@ -75,6 +75,9 @@ echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%S.000+0000)\",\"level\":\"WARN
   >> /app/logs/attack.log
 echo "[start.sh] Wrote startup test event to attack.log"
 
+# Strip Windows CRLF from ossec.conf so file paths are clean on Linux
+sed -i 's/\r//' /var/ossec/etc/ossec.conf
+
 echo "[start.sh] Starting Wazuh agent..."
 /var/ossec/bin/wazuh-control start || true
 
