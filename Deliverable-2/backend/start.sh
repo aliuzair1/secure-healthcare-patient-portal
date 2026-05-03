@@ -41,21 +41,21 @@ cat > /var/ossec/etc/ossec.conf << EOF
 
   <localfile>
     <log_format>json</log_format>
-    <location>/app/logs/attack.log</location>
+    <location>/app/waf_sig/logs/attack.log</location>
     <label key="log.source">waf_attack</label>
     <label key="log.environment">production</label>
   </localfile>
 
   <localfile>
     <log_format>json</log_format>
-    <location>/app/logs/access.log</location>
+    <location>/app/waf_sig/logs/access.log</location>
     <label key="log.source">waf_access</label>
     <label key="log.environment">production</label>
   </localfile>
 
   <localfile>
     <log_format>json</log_format>
-    <location>/app/logs/error.log</location>
+    <location>/app/waf_sig/logs/error.log</location>
     <label key="log.source">waf_error</label>
     <label key="log.environment">production</label>
   </localfile>
@@ -72,10 +72,10 @@ EOF
 
 # Pre-create log files so Wazuh logcollector finds them at agent startup.
 # Also write a startup test event so we can verify the pipeline immediately.
-mkdir -p /app/logs
-touch /app/logs/access.log /app/logs/error.log /app/logs/app.log
+mkdir -p /app/logs /app/waf_sig/logs
+touch /app/waf_sig/logs/access.log /app/waf_sig/logs/error.log /app/logs/app.log
 echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%S.000+0000)\",\"level\":\"WARNING\",\"logger\":\"waf.attack\",\"message\":\"startup-test\",\"event_type\":\"attack\",\"client_ip\":\"127.0.0.1\",\"method\":\"GET\",\"path\":\"/startup-test\",\"action\":\"BLOCK\",\"risk_score\":0.99,\"risk_label\":\"CRITICAL\"}" \
-  >> /app/logs/attack.log
+  >> /app/waf_sig/logs/attack.log
 echo "[start.sh] Wrote startup test event to attack.log"
 
 # Strip Windows CRLF from ossec.conf so file paths are clean on Linux
