@@ -67,9 +67,13 @@ cat > /var/ossec/etc/ossec.conf << EOF
 </ossec_config>
 EOF
 
-# Pre-create log files so Wazuh logcollector finds them at agent startup
+# Pre-create log files so Wazuh logcollector finds them at agent startup.
+# Also write a startup test event so we can verify the pipeline immediately.
 mkdir -p /app/logs
-touch /app/logs/attack.log /app/logs/access.log /app/logs/error.log /app/logs/app.log
+touch /app/logs/access.log /app/logs/error.log /app/logs/app.log
+echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%S.000+0000)\",\"level\":\"WARNING\",\"logger\":\"waf.attack\",\"message\":\"startup-test\",\"event_type\":\"attack\",\"client_ip\":\"127.0.0.1\",\"method\":\"GET\",\"path\":\"/startup-test\",\"action\":\"BLOCK\",\"risk_score\":0.99,\"risk_label\":\"CRITICAL\"}" \
+  >> /app/logs/attack.log
+echo "[start.sh] Wrote startup test event to attack.log"
 
 echo "[start.sh] Starting Wazuh agent..."
 /var/ossec/bin/wazuh-control start || true
