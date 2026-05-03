@@ -3,10 +3,12 @@ set -e
 
 echo "[start.sh] Configuring Wazuh agent..."
 
-# Write pre-generated agent key (bypasses port 1515 registration)
-echo "${WAZUH_AGENT_ID} healthcare-render any ${WAZUH_AGENT_KEY}" \
-  > /var/ossec/etc/client.keys
+# Write pre-generated agent key — WAZUH_AGENT_KEY is the full base64-encoded
+# record from the Wazuh API (decodes to "ID NAME IP HEX_KEY")
+echo "${WAZUH_AGENT_KEY}" | base64 -d > /var/ossec/etc/client.keys
 chmod 640 /var/ossec/etc/client.keys
+
+echo "[start.sh] client.keys entry: $(awk '{print $1,$2,$3,"***"}' /var/ossec/etc/client.keys)"
 
 # Write ossec.conf — log paths use /app since WORKDIR is /app in Dockerfile
 cat > /var/ossec/etc/ossec.conf << EOF
@@ -67,6 +69,13 @@ EOF
 
 echo "[start.sh] Starting Wazuh agent..."
 /var/ossec/bin/wazuh-control start || true
+
+if pgrep -x wazuh-agentd > /dev/null 2>&1; then
+  echo "[start.sh] wazuh-agentd is running."
+else
+  echo "[start.sh] wazuh-agentd failed — last ossec.log lines:"
+  tail -20 /var/ossec/logs/ossec.log 2>/dev/null || echo "(no log file)"
+fi
 
 echo "[start.sh] Wazuh agent started. Starting Flask..."
 
