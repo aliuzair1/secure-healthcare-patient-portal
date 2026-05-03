@@ -98,7 +98,10 @@ if ! pgrep -x wazuh-syscheckd > /dev/null 2>&1; then
   /var/ossec/bin/wazuh-syscheckd || true
 fi
 
-echo "[start.sh] Wazuh agent started. Starting Flask..."
+echo "[start.sh] Wazuh agent started. Tailing ossec.log in background..."
+tail -f /var/ossec/logs/ossec.log &
+
+echo "[start.sh] Starting Flask..."
 
 exec gunicorn wsgi:application \
   --bind "0.0.0.0:${PORT:-10000}" \
