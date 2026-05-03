@@ -88,6 +88,16 @@ else
   tail -20 /var/ossec/logs/ossec.log 2>/dev/null || echo "(no log file)"
 fi
 
+if ! pgrep -x wazuh-logcollector > /dev/null 2>&1; then
+  echo "[start.sh] Starting wazuh-logcollector manually..."
+  /var/ossec/bin/wazuh-logcollector || true
+fi
+
+if ! pgrep -x wazuh-syscheckd > /dev/null 2>&1; then
+  echo "[start.sh] Starting wazuh-syscheckd manually..."
+  /var/ossec/bin/wazuh-syscheckd || true
+fi
+
 echo "[start.sh] Wazuh agent started. Starting Flask..."
 
 exec gunicorn wsgi:application \
