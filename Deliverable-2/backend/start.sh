@@ -38,21 +38,21 @@ cat > /var/ossec/etc/ossec.conf << EOF
 
   <localfile>
     <log_format>json</log_format>
-    <location>/app/waf_sig/logs/attack.log</location>
+    <location>/app/logs/attack.log</location>
     <label key="log.source">waf_attack</label>
     <label key="log.environment">production</label>
   </localfile>
 
   <localfile>
     <log_format>json</log_format>
-    <location>/app/waf_sig/logs/access.log</location>
+    <location>/app/logs/access.log</location>
     <label key="log.source">waf_access</label>
     <label key="log.environment">production</label>
   </localfile>
 
   <localfile>
     <log_format>json</log_format>
-    <location>/app/waf_sig/logs/error.log</location>
+    <location>/app/logs/error.log</location>
     <label key="log.source">waf_error</label>
     <label key="log.environment">production</label>
   </localfile>
