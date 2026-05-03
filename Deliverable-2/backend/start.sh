@@ -22,7 +22,7 @@ cat > /var/ossec/etc/ossec.conf << EOF
     </server>
     <notify_time>120</notify_time>
     <time-reconnect>60</time-reconnect>
-    <auto_restart>yes</auto_restart>
+    <auto_restart>no</auto_restart>
     <crypto_method>aes</crypto_method>
     <enrollment>
       <enabled>no</enabled>
