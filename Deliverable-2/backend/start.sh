@@ -24,6 +24,9 @@ cat > /var/ossec/etc/ossec.conf << EOF
     <time-reconnect>60</time-reconnect>
     <auto_restart>yes</auto_restart>
     <crypto_method>aes</crypto_method>
+    <enrollment>
+      <enabled>no</enabled>
+    </enrollment>
   </client>
 
   <client_buffer>
