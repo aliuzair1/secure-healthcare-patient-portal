@@ -67,6 +67,10 @@ cat > /var/ossec/etc/ossec.conf << EOF
 </ossec_config>
 EOF
 
+# Pre-create log files so Wazuh logcollector finds them at agent startup
+mkdir -p /app/logs
+touch /app/logs/attack.log /app/logs/access.log /app/logs/error.log /app/logs/app.log
+
 echo "[start.sh] Starting Wazuh agent..."
 /var/ossec/bin/wazuh-control start || true
 
