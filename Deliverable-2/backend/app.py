@@ -31,7 +31,7 @@ load_dotenv()
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["200 per minute", "20 per second"],
-    storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "rediss://:7BiWLL4sNpWA1o2cS5BG5XRtu2bq1c9o@redis-10429.c212.ap-south-1-1.ec2.cloud.redislabs.com:10429"),
+    storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "redis://:7BiWLL4sNpWA1o2cS5BG5XRtu2bq1c9o@redis-10429.c212.ap-south-1-1.ec2.cloud.redislabs.com:10429"),
 )
 
 
