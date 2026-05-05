@@ -157,7 +157,7 @@ def _real_ip(flask_req: Request):
             if _is_valid_ip(candidate) and not _is_trusted_proxy(candidate):
                 return candidate, "X-Forwarded-For"
 
-    return flask_req.remote_addr or "0.0.0.0", "REMOTE_ADDR"
+    return flask_req.remote_addr or "0.0.0.0", "REMOTE_ADDR"  # nosec B104 — fallback string, not binding
 
 
 # ---------------------------------------------------------------------------

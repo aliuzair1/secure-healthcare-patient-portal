@@ -207,7 +207,7 @@ class WAF:
                         "Strict-Transport-Security",
                         "max-age=63072000; includeSubDomains; preload",
                     )
-            except Exception:
+            except Exception:  # nosec B110 — intentional: HSTS header is best-effort, must not break response
                 pass
 
             return response

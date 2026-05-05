@@ -38,7 +38,7 @@ def _decode_jwt(token: str) -> dict | None:
             return jwt.decode(
                 token, secret, algorithms=["HS256"], audience="authenticated", options={"verify_exp": True}
             )
-    except Exception:
+    except Exception:  # nosec B110 — intentional: fall through to second JWT validation attempt
         pass
 
     # Second attempt: For asymmetric keys (ES256/RS256) missing JWKS endpoints

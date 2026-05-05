@@ -226,7 +226,7 @@ def get_scheduling_config():
             .execute()
         )
     except Exception:
-        pass
+        logger.warning("Failed to query scheduling_config, returning defaults", exc_info=True)
     else:
         if res.data:
             return success(_map_config(res.data))

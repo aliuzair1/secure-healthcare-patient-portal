@@ -141,7 +141,7 @@ def _normalise_value(s: str) -> tuple[str, dict]:
             if any(c.isalpha() for c in decoded):
                 sig["had_base64_payloads"] = True
                 return decoded
-        except Exception:
+        except Exception:  # nosec B110 — intentional: malformed base64 falls back to raw blob
             pass
         return blob
     s = _BASE64_RE.sub(_try_decode, s)
@@ -190,7 +190,7 @@ def _parse_body(raw: bytes, content_type: str):
             parsed = parse_qs(raw_str, keep_blank_values=True)
             flat = {k: " ".join(v) for k, v in parsed.items()}
             return "form", parsed, flat, raw_str
-        except Exception:
+        except Exception:  # nosec B110 — intentional: unparseable form body falls through to next content-type handler
             pass
 
     if "xml" in ct:
