@@ -76,7 +76,7 @@ def _fetch_profile(user_id: str) -> dict | None:
                 get_supabase()
                 .table("profiles")
                 .select(
-                    "id, email, role, first_name, last_name, is_active, is_approved, "
+                    "id, role, first_name, last_name, is_active, is_approved, "
                     "mfa_enabled, specialty, license_number, department, "
                     "assigned_doctor_id"
                 )
@@ -210,6 +210,9 @@ def require_auth(f):
                 "method": request.method,
             },
         )
+
+        # email lives in auth.users, not profiles — pull it from the verified JWT claim.
+        profile["email"] = payload.get("email")
 
         g.user_id = user_id
         g.user = profile
