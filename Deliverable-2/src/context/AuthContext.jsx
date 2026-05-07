@@ -121,6 +121,12 @@ export function AuthProvider({ children }) {
         // Navigation is handled by PublicRoute reacting to isAuthenticated + user,
         // so it always uses the committed user.role from React state.
         const profile = await authService.getSessionUser();
+        if (!profile) {
+          // /api/auth/me failed (network error, 401, 403, etc.) — don't mark as
+          // authenticated; surface an error so the user knows to retry.
+          setAuthState(AUTH_STATES.IDLE);
+          throw { status: 500, message: 'Login succeeded but your profile could not be loaded. Please try again.' };
+        }
         setUser(profile);
         setAuthState(AUTH_STATES.AUTHENTICATED);
         showToast('Login successful. Welcome back!', 'success');
@@ -142,6 +148,10 @@ export function AuthProvider({ children }) {
       });
 
       const profile = await authService.getSessionUser();
+      if (!profile) {
+        setAuthState(AUTH_STATES.MFA_REQUIRED);
+        throw { status: 500, message: 'MFA verified but your profile could not be loaded. Please try again.' };
+      }
       setUser(profile);
       setMfaChallenge(null);
       setAuthState(AUTH_STATES.AUTHENTICATED);

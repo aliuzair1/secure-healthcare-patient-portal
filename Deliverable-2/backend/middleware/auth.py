@@ -41,17 +41,22 @@ def _decode_jwt(token: str) -> dict | None:
     except Exception:  # nosec B110 — intentional: fall through to second JWT validation attempt
         pass
 
-    # Second attempt: For asymmetric keys (ES256/RS256) missing JWKS endpoints
+    # Second attempt: ES256/RS256 — validate via Supabase server, then read claims locally.
     import time
     auth_client = get_supabase().auth
     for attempt in range(2):
         try:
-            # Validate token authenticity via Supabase server. 
+            # Validate token authenticity via Supabase server.
             # If this succeeds, the token is 100% securely valid and not forged.
             user_resp = auth_client.get_user(token)
             if user_resp and getattr(user_resp, "user", None):
-                # Safely parse claims locally now that authenticity is proven
-                return jwt.decode(token, options={"verify_signature": False})
+                # Safely parse claims locally now that authenticity is proven.
+                # algorithms must be supplied to stay compatible with PyJWT >= 2.8 / 3.x.
+                return jwt.decode(
+                    token,
+                    algorithms=["RS256", "ES256", "HS256"],
+                    options={"verify_signature": False},
+                )
             return None
         except Exception as exc:
             if attempt == 0:
@@ -71,7 +76,7 @@ def _fetch_profile(user_id: str) -> dict | None:
                 get_supabase()
                 .table("profiles")
                 .select(
-                    "id, role, first_name, last_name, is_active, is_approved, "
+                    "id, email, role, first_name, last_name, is_active, is_approved, "
                     "mfa_enabled, specialty, license_number, department, "
                     "assigned_doctor_id"
                 )
