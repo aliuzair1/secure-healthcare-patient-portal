@@ -152,10 +152,3 @@ def waf_middleware(request):
 - All code, especially the WAF, is written for auditability and easy review by security teams.
 - Privacy by design: Only necessary data is collected and all personally identifiable information (PII) is protected at every layer.
 
----
-
-## Contact
-
-For further technical details or collaboration inquiries, please refer to the repository or contact [aliuzair1](https://github.com/aliuzair1).
-
----
