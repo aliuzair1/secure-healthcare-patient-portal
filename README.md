@@ -1,6 +1,6 @@
 # Secure Healthcare Patient Portal
 
-This directory contains the production codebase for the Secure Healthcare Patient Portal, a full-stack healthcare web application designed with a strong emphasis on cybersecurity, privacy, and compliance with industry best practices.
+This directory contains the production codebase for the Secure Healthcare Patient Portal, a full-stack healthcare web application engineered with comprehensive cybersecurity, privacy, and compliance best practices.
 
 **Live Application:** [secure-healthcare-patient-portal.vercel.app](https://secure-healthcare-patient-portal.vercel.app)
 
@@ -8,28 +8,36 @@ This directory contains the production codebase for the Secure Healthcare Patien
 
 ## Overview
 
-The Secure Healthcare Patient Portal enables patients and healthcare staff to manage and interact with sensitive medical data securely. The application architecture and implementation are centered on defense-in-depth, robust authentication, and data integrity controls to mitigate real-world threats in medical and regulated environments.
+The Secure Healthcare Patient Portal enables secure patient and staff interaction with sensitive medical data. The application is architected with layered security controls, advanced threat detection, and robust deployment strategies to meet the demands of highly regulated environments.
 
 - **Frontend:** JavaScript (React/Next.js), deployed on [Vercel](https://vercel.com/)
-- **Backend:** Python (Flask/FastAPI as applicable), deployed on [Render](https://render.com/)
-- **Database:** [Supabase](https://supabase.com/) (PostgreSQL, managed), with enforced security rules
+- **Backend:** Python (Flask/FastAPI), deployed on [Render](https://render.com/)
+- **Database:** [Supabase](https://supabase.com/) (PostgreSQL)
+- **SIEM:** [Wazuh](https://wazuh.com/) Security Information and Event Management integration for centralized monitoring and real-time threat analysis
 
 ---
 
 ## Security Architecture
 
-Security has been integrated at every layer of the application:
+Security is implemented at every layer through defense-in-depth. Major components include:
 
 ### Custom Web Application Firewall (WAF)
 
-A purpose-built Web Application Firewall (WAF) is implemented at the application layer of the backend API service. Its features include:
+A bespoke Web Application Firewall (WAF) is integrated at the backend API layer with the following features:
 
-- **Centralized Request Interception:** All incoming HTTP requests are inspected before processing.
-- **Input Validation:** Proactive filtering and sanitization to block SQL Injection (SQLi), Cross-Site Scripting (XSS), and other code injection attacks.
-- **CSRF Protection:** All state-changing requests require validated custom anti-CSRF tokens and strict origin/referer checking.
-- **Rate Limiting:** Brute-force attacks and credential stuffing attempts are detected and throttled.
-- **Anomaly Detection:** The WAF monitors traffic patterns and triggers security events when anomalies are observed.
-- **Structured Logging:** All denied or suspicious requests are logged with relevant metadata for incident response and audit.
+- **Request Interception:** All HTTP requests are filtered before processing.
+- **Input Validation:** Blocks SQL Injection, XSS, and other attacks using context-aware sanitization.
+- **CSRF Protection:** Anti-CSRF tokens and referer/origin validation for state-changing requests.
+- **Rate Limiting:** Defends against brute-force and enumeration attacks.
+- **Anomaly Detection:** Monitors and blocks suspicious or automated traffic.
+- **Structured Logging:** All security-relevant events, including blocks and anomalies, are logged for audit and monitoring.
+
+### SIEM Integration (Wazuh)
+
+- **Centralized Security Logging:** All security logs and WAF alerts are forwarded to a Wazuh SIEM server.
+- **Automated Threat Detection:** Real-time analysis of logs for intrusion attempts, policy violations, and anomaly detection.
+- **Compliance Reporting:** Automated generation of alerts and compliance-oriented audit reports.
+- **Incident Response:** Enables rapid triage and response based on actionable Wazuh alerts integrated from backend and infrastructure sources.
 
 #### Example WAF Rule Logic
 
@@ -37,71 +45,58 @@ A purpose-built Web Application Firewall (WAF) is implemented at the application
 def waf_middleware(request):
     if has_sql_injection(request.data):
         log_event(type="blocked_sql_injection", user_ip=request.ip)
+        send_to_wazuh(event="sql_injection", details=request.data)
         return deny_request("Blocked: SQL Injection detected.")
     if has_xss_payload(request.data):
         log_event(type="blocked_xss", user_ip=request.ip)
+        send_to_wazuh(event="xss_attempt", details=request.data)
         return deny_request("Blocked: XSS attempt detected.")
     if exceeded_rate_limit(request):
         log_event(type="rate_limit", user_ip=request.ip)
+        send_to_wazuh(event="rate_limit", user=request.user)
         return deny_request("Blocked: Rate limit exceeded.")
-# ... additional context-aware checks
+# ... additional rules
 ```
 
 ### Additional Security Measures
 
-- **End-to-End Encryption:** All communications between client, backend, and database are enforced over HTTPS/TLS. Sensitive data at rest is encrypted in the database.
-- **Authentication & Authorization:**
-  - Passwords are hashed using a strong algorithm (bcrypt/argon2) and not stored in plaintext.
-  - JWT-based authentication with strict expiration, integrity checking, and role-based access (RBAC) controls.
-- **Frontend Security:**
-  - Content Security Policy (CSP) prevents unauthorized script execution.
-  - React/Next.js output encoding further reduces XSS risk.
-  - Client input is validated before submission.
-- **Logging & Auditing:**
-  - Security-relevant user actions, authentication events, data change operations, and failed access attempts are audited with immutable logs.
-- **Secure Software Development Lifecycle (SSDLC):**
-  - Adheres to modern secure coding practices including dependency management (dependabot, pip audit, npm audit) and code reviews.
+- **End-to-End Encryption:** All client–backend–database traffic enforced over HTTPS/TLS; at-rest data encryption in Supabase.
+- **Authentication & Authorization:** Strong password hashing (bcrypt/argon2), JWT authentication, strict role-based access controls (RBAC).
+- **Frontend Security:** CSP headers, output encoding, client-side validation integrated with backend security layers.
+- **Logging & Auditing:** All significant actions and authentication events are securely logged and forwarded to Wazuh for centralized security operations and forensics.
+- **Secure SDLC:** Adheres to modern secure development practices, automated dependency scans, and regular code review.
 
 ---
 
 ## Application Architecture
 
-- **Frontend (Vercel):**
-  - Built using React/Next.js for speed, scalability, and modern UX.
-  - Deployed globally via [Vercel](https://secure-healthcare-patient-portal.vercel.app) for minimal latency and instant rollbacks.
-  - Secure environmental variable management.
-
-- **Backend (Render):**
-  - Python RESTful API with Flask/FastAPI.
-  - Custom WAF runs as middleware for all endpoints.
-  - Backend services are securely isolated and expose only public API endpoints.
-  - Deployment and scaling managed by [Render](https://render.com/).
-
-- **Database (Supabase):**
-  - PostgreSQL used with strict Row Level Security (RLS) rules.
-  - Supabase authentication and authorization features are combined with application-level controls.
-  - Regular backups and automated threat detection.
+- **Frontend (Vercel):**  
+  React/Next.js frontend, deployed with secure environment isolation and continuous deployment on [Vercel](https://secure-healthcare-patient-portal.vercel.app).
+- **Backend (Render):**  
+  Python REST API, custom WAF as middleware, independently deployed and scaled on [Render](https://render.com/).
+- **Database (Supabase):**  
+  PostgreSQL with Row-Level Security, cryptographic controls, and managed access policies.
+- **Security Monitoring (Wazuh SIEM):**  
+  All application and security logs are shipped to a dedicated Wazuh server for aggregation, analysis, patterned alerting, and compliance dashboards.
 
 ---
 
-## How to Run Locally
+## Local Installation
 
-1. **Clone the repository:**
+1. **Clone the Repository:**
     ```bash
     git clone https://github.com/aliuzair1/secure-healthcare-patient-portal.git
     cd secure-healthcare-patient-portal/deliverables-2
     ```
 
 2. **Backend Setup:**
-    - Create and activate a Python virtual environment
-    - Install dependencies
     ```bash
     python3 -m venv venv
     source venv/bin/activate
     pip install -r requirements.txt
     ```
-    - Configure `.env` with secure secrets (see `.env.example` if available)
-    - Run backend server
+    - Configure `.env` for secrets and Wazuh SIEM endpoint details.
+    - Run backend server:
     ```bash
     python app.py
     ```
@@ -114,20 +109,22 @@ def waf_middleware(request):
     ```
 
 4. **Database:**
-    - Requires connection credentials for Supabase PostgreSQL (see environment configuration)
+    - Configure Supabase credentials as per environment instructions.
 
 ---
 
 ## Deployment
 
-- **Production Frontend:**  
-  [https://secure-healthcare-patient-portal.vercel.app](https://secure-healthcare-patient-portal.vercel.app)  *(Vercel)*
-- **Production Backend:**  
+- **Frontend (Production):**  
+  [https://secure-healthcare-patient-portal.vercel.app](https://secure-healthcare-patient-portal.vercel.app)
+- **Backend (Production):**  
   Hosted on [Render](https://render.com/)
-- **Production Database:**  
-  Managed via [Supabase](https://supabase.com/)  
-- **CI:**  
-  Continuous deployment/integration enabled for seamless updates and security patching
+- **Database:**  
+  Managed via [Supabase](https://supabase.com/)
+- **Security Monitoring:**  
+  [Wazuh SIEM](https://wazuh.com/) for real-time threat detection and compliance
+- **CI/CD:**  
+  Automated via Vercel (frontend), Render (backend), and integrated testing
 
 ---
 
@@ -135,20 +132,21 @@ def waf_middleware(request):
 
 ```
 /deliverables-2
-│
-├── backend/               # Python Flask/FastAPI backend with custom WAF
-├── frontend/              # React/Next.js frontend code
+├── backend/               # Python backend + custom WAF
+├── frontend/              # React/Next.js frontend
 ├── requirements.txt       # Python dependencies
-├── package.json           # JS dependencies (frontend)
+├── package.json           # JS frontend dependencies
 ├── .env.example           # Example environment variables
-└── README.md              # (This documentation)
+└── README.md              # (This file)
 ```
 
 ---
 
-## Compliance & Best Practices
+## Compliance and Best Practices
 
-- Security controls modeled after healthcare sector best practices (HIPAA, OWASP Top Ten).
-- All code, especially the WAF, is written for auditability and easy review by security teams.
-- Privacy by design: Only necessary data is collected and all personally identifiable information (PII) is protected at every layer.
+- Controls and audit posture modeled on HIPAA and OWASP Top 10.
+- Custom WAF, robust logging, and Wazuh SIEM integration provide proactive defense and incident response capabilities.
+- Privacy by design: PII is minimized, compartmentalized, and encrypted from interface to storage.
+- All code is engineered for auditability, traceability, and secure operation.
 
+---
